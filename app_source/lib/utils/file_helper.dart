@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:app_source/utils/util_googlemap.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lecle_downloads_path_provider/lecle_downloads_path_provider.dart';
@@ -37,10 +36,6 @@ class GpxHelper {
         .writeln('<?xml version="1.0" encoding="UTF-8" standalone="no" ?>');
     gpxString.writeln(
         '<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="YourAppName">');
-    gpxString.writeln('<metadata>');
-    gpxString.writeln(
-        '<desc>Distancia total: ${GoogleMapScreen.totalDistance.toStringAsFixed(2)} km, Tiempo total: ${GoogleMapScreen.totalTime.toString()} s</desc>');
-    gpxString.writeln('</metadata>');
     gpxString.writeln('<trk>');
     gpxString.writeln('<trkseg>');
 
