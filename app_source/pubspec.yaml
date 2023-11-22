@@ -36,6 +36,7 @@ dependencies:
   permission_handler: ^11.1.0
   flutter_polyline_points: ^2.0.0 # FOR POLYLINE
   path_provider: ^2.1.1 # FOR PATH
+  lecle_downloads_path_provider: ^0.0.2+8
 
 
 dev_dependencies:

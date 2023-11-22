@@ -25,8 +25,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  bool isRecording = false; // Variable para controlar el estado de la grabación
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,13 +48,48 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: () {
                       mapKey.currentState?.startTracking();
                     },
-                    child: const Text('Iniciar'),
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                        (Set<MaterialState> states) {
+                          if (mapKey.currentState?.isTracking ?? false)
+                            return Colors.green;
+                          return Colors.white;
+                        },
+                      ),
+                      foregroundColor:
+                          MaterialStateProperty.all<Color>(Colors.black),
+                    ),
+                    child: const Text('Iniciar ruta'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      mapKey.currentState?.resetTimeAndDistance();
+                    },
+                    style: ButtonStyle(
+                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18.0),
+                        ),
+                      ),
+                    ),
+                    child: const Text('Restablecer'),
                   ),
                   ElevatedButton(
                     onPressed: () {
                       mapKey.currentState?.stopTracking();
                     },
-                    child: const Text('Detener'),
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                        (Set<MaterialState> states) {
+                          if (!(mapKey.currentState?.isTracking ?? true))
+                            return Colors.green;
+                          return Colors.white;
+                        },
+                      ),
+                      foregroundColor:
+                          MaterialStateProperty.all<Color>(Colors.black),
+                    ),
+                    child: const Text('Detener ruta'),
                   ),
                 ],
               ),

@@ -12,6 +12,9 @@ final GlobalKey<_GoogleMapScreenState> mapKey =
 class GoogleMapScreen extends StatefulWidget {
   const GoogleMapScreen({super.key});
 
+  static double totalDistance = 0.0;
+  static int totalTime = 0;
+
   @override
   _GoogleMapScreenState createState() => _GoogleMapScreenState();
 }
@@ -27,13 +30,26 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
   late DateTime _startTime;
   int _elapsedSeconds = 0;
   double _totalDistance = 0;
+  double speedMps = 0;
 
   @override
   void initState() {
     super.initState();
     determinePosition();
-    _startTime = DateTime.now();
-    _startTimer();
+  }
+
+  void resetTimeAndDistance() {
+    setState(() {
+      // Restablecer tiempo y distancia
+      GoogleMapScreen.totalDistance = 0.0;
+      GoogleMapScreen.totalTime = 0;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Tiempo y distancia restablecidos'),
+      ),
+    );
   }
 
   // Inicia el cronómetro
@@ -71,7 +87,11 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
       routeCoordinates.clear(); // Limpia las coordenadas anteriores
       isTracking = true; // Activa el seguimiento
       _startTime = DateTime.now(); // Inicia el cronómetro
+      _elapsedSeconds = 0; // Reinicia los segundos
+      _totalDistance = 0; // Reinicia la distancia
     });
+    _startTimer();
+    _clearRoute();
 
     positionStream = Geolocator.getPositionStream().listen((Position position) {
       _onPositionChanged(position);
@@ -83,9 +103,9 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
     positionStream?.cancel();
 
     setState(() {
-      isTracking = false;
-      // Detiene el seguimiento
+      isTracking = false; // Detiene el seguimiento
     });
+    _stopTimer();
 
     _saveRouteAsGpx();
   }
@@ -179,21 +199,45 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
     }
   }
 
+  void _clearRoute() {
+    setState(() {
+      // Limpiar datos de la ruta
+      routeCoordinates.clear();
+      _polylines.clear();
+      GoogleMapScreen.totalDistance = 0.0;
+      GoogleMapScreen.totalTime = 0;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Ruta borrada'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    int elapsedMinutes =
-        (_elapsedSeconds / 60).floor(); // Convertir los segundos a minutos
+    int elapsedHours = (_elapsedSeconds / 3600).floor();
+    int elapsedMinutes = ((_elapsedSeconds % 3600) / 60).floor();
+    int elapsedSeconds = (_elapsedSeconds % 60).floor();
 
-    String roundedDistance = _totalDistance.toStringAsFixed(2);
+    double distanceKm = (_totalDistance / 1000);
+
+    String roundedDistanceKm = distanceKm.toStringAsFixed(2);
+
+    double speedMps = _totalDistance / _elapsedSeconds;
+
+    String roundedSpeedMps = speedMps.toStringAsFixed(2);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stravia Mapa'),
+        title: const Text('Ruta'),
       ),
       body: (currentPosition != null)
           ? Column(
               children: [
                 Expanded(
+                  flex: 5,
                   child: GoogleMap(
                     onMapCreated: (GoogleMapController controller) {
                       mapController = controller;
@@ -207,7 +251,7 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
                     markers: {
                       // Marcador de ubicación actual (punto azul)
                       Marker(
-                        markerId: MarkerId('current_position'),
+                        markerId: const MarkerId('current_position'),
                         position: LatLng(
                           currentPosition!.latitude,
                           currentPosition!.longitude,
@@ -219,7 +263,7 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
                       // Marcador del inicio de la ruta (punto rojo)
                       if (routeCoordinates.isNotEmpty)
                         Marker(
-                          markerId: MarkerId('start_position'),
+                          markerId: const MarkerId('start_position'),
                           position: LatLng(
                             routeCoordinates.first.latitude,
                             routeCoordinates.first.longitude,
@@ -231,7 +275,7 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
                       // Marcador del final de la ruta (punto verde)
                       if (routeCoordinates.isNotEmpty)
                         Marker(
-                          markerId: MarkerId('end_position'),
+                          markerId: const MarkerId('end_position'),
                           position: LatLng(
                             routeCoordinates.last.latitude,
                             routeCoordinates.last.longitude,
@@ -248,16 +292,60 @@ class _GoogleMapScreenState extends State<GoogleMapScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Tiempo: $elapsedMinutes minutos',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 18),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 1.0),
+                        child: SizedBox(
+                          width:
+                              10.0, // Ajusta este valor para cambiar el ancho del botón
+                          child: ElevatedButton(
+                            onPressed: _saveRouteAsGpx,
+                            style: ButtonStyle(
+                              shape: MaterialStateProperty.all<
+                                  RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18.0),
+                                ),
+                              ),
+                            ),
+                            child: const Text('Guardar Ruta como KML'),
+                          ),
+                        ),
                       ),
-                      SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 1.0),
+                        child: SizedBox(
+                          width:
+                              10.0, // Ajusta este valor para cambiar el ancho del botón
+                          child: ElevatedButton(
+                            onPressed: _clearRoute,
+                            style: ButtonStyle(
+                              shape: MaterialStateProperty.all<
+                                  RoundedRectangleBorder>(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18.0),
+                                ),
+                              ),
+                            ),
+                            child: const Text('Clear Route'),
+                          ),
+                        ),
+                      ),
                       Text(
-                        'Distancia: $roundedDistance metros',
+                        'Tiempo: $elapsedHours : $elapsedMinutes : $elapsedSeconds',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 18),
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Distancia: $roundedDistanceKm km',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Velocidad: $roundedSpeedMps m/s',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 18),
                       ),
                     ],
                   ),
